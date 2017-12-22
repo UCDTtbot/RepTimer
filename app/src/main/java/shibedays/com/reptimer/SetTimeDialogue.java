@@ -68,7 +68,7 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
         parentActivity = (MainActivity) getActivity();
         LayoutInflater inflater = getActivity().getLayoutInflater();
 
-        View view = inflater.inflate(R.layout.set_time_dialogue, null);
+        View view = inflater.inflate(R.layout.fragment_set_time_dialogue, null);
 
         Bundle args = getArguments();
         TimeType = args.getString(MainActivity.TIME_TYPE_ID);
