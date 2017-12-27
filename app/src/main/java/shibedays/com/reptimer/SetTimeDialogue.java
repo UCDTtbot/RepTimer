@@ -5,17 +5,16 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.NumberPicker;
 import android.widget.TextView;
+
+import java.util.Locale;
 
 
 public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnValueChangeListener{
@@ -24,14 +23,14 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
     //Log tag
     private static String DEBUG_TAG = "SetTimeDialogue.tag";
     //The time array being set
-    private int time[];
+    private int mTime[];
     //Preference editor for saving values
-    private SharedPreferences.Editor prefEditor;
+    private SharedPreferences.Editor mPrefEditor;
     //The type of time we are working with
-    private String TimeType;
-    private String PrefType;
+    private String mTimeType;
+    private String mPrefType;
     //The parent
-    private MainActivity parentActivity;
+    private MainActivity mParentActivity;
     //endregion
 
     //region PUBLIC_VARS
@@ -65,28 +64,33 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
     public Dialog onCreateDialog(Bundle savedInstances){
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        parentActivity = (MainActivity) getActivity();
+        mParentActivity = (MainActivity) getActivity();
         LayoutInflater inflater = getActivity().getLayoutInflater();
 
         View view = inflater.inflate(R.layout.fragment_set_time_dialogue, null);
 
         Bundle args = getArguments();
-        TimeType = args.getString(MainActivity.TIME_TYPE_ID);
-        PrefType = args.getString(MainActivity.PREF_TYPE_ID);
-        time = args.getIntArray(TimeType);
+        mTimeType = args.getString(MainActivity.TIME_TYPE_KEY);
+        mPrefType = args.getString(MainActivity.PREF_TYPE_KEY);
+        mTime = args.getIntArray(mTimeType);
 
         NumberPicker minutePicker = view.findViewById(R.id.MinutePicker);
         NumberPicker secondsPicker = view.findViewById(R.id.SecondsPicker);
 
         minutePicker.setMinValue(0);
         minutePicker.setMaxValue(59);
-        minutePicker.setValue(time[0]);
+        minutePicker.setValue(mTime[0]);
         minutePicker.setWrapSelectorWheel(true);
         minutePicker.setOnValueChangedListener(this);
 
         secondsPicker.setMinValue(0);
         secondsPicker.setMaxValue(59);
-        secondsPicker.setValue(time[1]);
+        secondsPicker.setValue(mTime[1]);
+        secondsPicker.setFormatter(new NumberPicker.Formatter() {
+            @Override
+            public String format(int i) {
+                return String.format(Locale.US,"%02d", i);            }
+        });
         secondsPicker.setWrapSelectorWheel(true);
         secondsPicker.setOnValueChangedListener(this);
 
@@ -94,20 +98,20 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
                 .setTitle("Choose a time")
                 .setPositiveButton("Set", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        prefEditor = getActivity().getSharedPreferences(MainActivity.PREF_IDENTIFIER, Context.MODE_PRIVATE).edit();
-                        prefEditor.putInt(PrefType, MainActivity.convertToMillis(time));
-                        prefEditor.apply();
+                        mPrefEditor = getActivity().getSharedPreferences(MainActivity.PREF_IDENTIFIER, Context.MODE_PRIVATE).edit();
+                        mPrefEditor.putInt(mPrefType, MainActivity.convertToMillis(mTime));
+                        mPrefEditor.apply();
                         TextView view = null;
-                        if(MainActivity.TIME_TYPE.get(TimeType) == 0){ //Rep
-                            view = parentActivity.findViewById(R.id.rep_time);
-                        }else if(MainActivity.TIME_TYPE.get(TimeType) == 1) { //Rest
-                            view = parentActivity.findViewById(R.id.rest_time);
-                        }else if(MainActivity.TIME_TYPE.get(TimeType) == 2) { // Break
-                            view = parentActivity.findViewById(R.id.break_time);
+                        if(MainActivity.TIME_TYPE.get(mTimeType) == 0){ //Rep
+                            view = mParentActivity.findViewById(R.id.rep_time);
+                        }else if(MainActivity.TIME_TYPE.get(mTimeType) == 1) { //Rest
+                            view = mParentActivity.findViewById(R.id.rest_time);
+                        }else if(MainActivity.TIME_TYPE.get(mTimeType) == 2) { // Break
+                            view = mParentActivity.findViewById(R.id.break_time);
                         }else{
                             Log.e(DEBUG_TAG, "Unable to set view in dialog fragment positive button click.");
                         }
-                        parentActivity.updateTimeUI(view, MainActivity.TIME_TYPE.get(TimeType));
+                        mParentActivity.updateTimeUI(view, mTime);
                         mListener.onDialogPositiveClick(SetTimeDialogue.this);
                     }
                 })
@@ -124,9 +128,9 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
     @Override
     public void onValueChange(NumberPicker picker, int oldVal, int newVal){
         if(picker.getId() == R.id.MinutePicker){
-            time[0] = newVal;
+            mTime[0] = newVal;
         }else if(picker.getId() == R.id.SecondsPicker) {
-            time[1] = newVal;
+            mTime[1] = newVal;
         }
     }
     //endregion

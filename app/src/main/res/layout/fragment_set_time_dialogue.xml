@@ -34,7 +34,7 @@
                 android:layout_marginStart="4dp"
                 android:layout_marginTop="2dp"
                 android:layout_marginBottom="4dp"
-                android:text="M"/>
+                android:text="@string/minute_label"/>
         </android.support.v7.widget.LinearLayoutCompat>
 
         <android.support.v7.widget.LinearLayoutCompat
@@ -51,7 +51,7 @@
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="35dp"
                 android:gravity="center_vertical"
-                android:text=":"
+                android:text="@string/colon_label"
                 android:textSize="36sp"/>
         </android.support.v7.widget.LinearLayoutCompat>
 
@@ -79,7 +79,7 @@
                 android:layout_marginEnd="4dp"
                 android:layout_marginStart="4dp"
                 android:layout_marginTop="2dp"
-                android:text="S" />
+                android:text="@string/seconds_label" />
         </android.support.v7.widget.LinearLayoutCompat>
 
     </android.support.v7.widget.LinearLayoutCompat>

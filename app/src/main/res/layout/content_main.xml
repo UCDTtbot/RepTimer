@@ -4,17 +4,103 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="shibedays.com.reptimer.MainActivity"
     tools:showIn="@layout/activity_main">
 
     <TextView
+        android:id="@+id/rep_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="24dp"
+        android:textSize="@dimen/text_size_large"
+        android:text="@string/default_time" />
+
+    <Button
+        android:id="@+id/set_rep_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/rep_time"
+        android:layout_alignBottom="@+id/rep_time"
+        android:layout_alignParentEnd="true"
+        android:layout_alignStart="@+id/set_break_button"
+        android:layout_marginEnd="0dp"
+        android:onClick="getTime"
+        android:text="@string/set_rep_button" />
+
+    <TextView
+        android:id="@+id/rest_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/rep_time"
+        android:layout_marginTop="@dimen/text_view_margin"
+        android:textSize="@dimen/text_size_large"
+        android:text="@string/default_time" />
+
+    <Button
+        android:id="@+id/set_rest_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/rest_time"
+        android:layout_alignBottom="@+id/rest_time"
+        android:layout_alignParentEnd="true"
+        android:layout_alignStart="@+id/set_break_button"
+        android:onClick="getTime"
+        android:text="@string/set_rest_button" />
+
+    <TextView
+        android:id="@+id/break_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/rest_time"
+        android:layout_marginTop="@dimen/text_view_margin"
+        android:textSize="@dimen/text_size_large"
+        android:text="@string/default_time" />
+
+    <Button
+        android:id="@+id/set_break_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/break_time"
+        android:layout_alignBottom="@+id/break_time"
+        android:layout_alignParentEnd="true"
+        android:onClick="getTime"
+        android:text="@string/set_break_button" />
+
+    <Button
+        android:id="@+id/start_timer_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="0dp"
+        android:onClick="startTimer"
+        android:text="@string/start_timer_button" />
+
+    <Spinner
+        android:id="@+id/rep_spinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_below="@id/break_time"
+        android:layout_marginTop="@dimen/spinner_margin"
+        android:layout_toStartOf="@+id/start_timer_button" />
+
+    <Spinner
+        android:id="@+id/round_spinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_alignBottom="@id/rep_spinner"
+        android:layout_toEndOf="@+id/start_timer_button" />
 
 </RelativeLayout>

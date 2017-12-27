@@ -78,4 +78,25 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="minute_label">M</string>
+    <string name="colon_label">:</string>
+    <string name="seconds_label">S</string>
+    <string name="default_time">0:00</string>
+    <string name="default_rep">1</string>
+    <string name="default_round">1</string>
+    <string name="set_rep_button">Set Rep Time</string>
+    <string name="set_rest_button">Set Rest Time</string>
+    <string name="set_break_button">Set Break Time</string>
+    <string name="start_timer_button">Start Timer</string>
+
+    <string-array name="dropdown_array">
+        <item>\u00201\u0020</item>
+        <item>\u00202\u0020</item>
+        <item>\u00203\u0020</item>
+        <item>\u00204\u0020</item>
+        <item>\u00205\u0020</item>
+        <item>\u00206\u0020</item>
+        <item>\u00207\u0020</item>
+        <item>\u00208\u0020</item>
+    </string-array>
 </resources>
