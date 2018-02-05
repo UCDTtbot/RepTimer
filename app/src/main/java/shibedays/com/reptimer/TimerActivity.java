@@ -2,6 +2,8 @@ package shibedays.com.reptimer;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -18,7 +20,7 @@ import java.util.Locale;
 public class TimerActivity extends AppCompatActivity {
 
     //region PRIVATE_TAGS_AND_KEYS
-    private final static String DEBUG_TAG = "TimerScreen";
+    private final static String DEBUG_TAG = TimerActivity.class.getSimpleName();
     private final static String REP_OPERATION = "REP_OPERATION";
     private final static String REST_OPERATION = "REST_OPERATION";
     private final static String BREAK_OPERATION = "BREAK_OPERATION";
@@ -28,6 +30,9 @@ public class TimerActivity extends AppCompatActivity {
     public final static String UPDATE_TIMER_UI = "com.shibadays.TimerScreen.UPDATE_TIMER_UI";
     public final static String UPDATE_REP_UI = "com.shibadays.TimerScreen.UPDATE_REP_UI";
     public final static String UPDATE_ROUND_UI = "com.shibadays.TimerScreen.UPDATE_ROUND_UI";
+    public final static String ACTION_SERVICE_RUNNING_KEY = "com.shibedays.TimerScreen.SERVICE_RUNNING";
+    public final static String ACTION_CURRENT_REP_KEY = "com.shibedays.TimerScreen.CURRENT_REP";
+    public final static String ACTION_CURRENT_ROUND_KEY = "com.shibedays.TimerScreen.CURRENT_ROUND";
 
     //Broadcast filter for the timer receiver
     public final static String TIMER_BROADCAST_FILTER = "com.shibadays.TimerScreen.TimerFilter";
@@ -41,8 +46,10 @@ public class TimerActivity extends AppCompatActivity {
     private int mNumRounds;
     private int mNumReps;
 
+    private boolean mIsServiceRunning = false;
+
     //Is TTS ready or not
-    private Boolean mTTSIsReady = false;
+    private static Boolean mTTSIsReady = false;
 
     //endregion
 
@@ -105,7 +112,7 @@ public class TimerActivity extends AppCompatActivity {
     };
     //endregion
 
-    //TODO: Interrupt TTS when going back
+    // TODO: Hitting the system back arrow and the up-arrow don't do the same things
 
     //region OVERRIDE_DEFAULT_FUNCTIONS
     @Override
@@ -116,23 +123,33 @@ public class TimerActivity extends AppCompatActivity {
         //region GET_INTENT_VALUES
         //Get all the values from the intent
         Intent intent = getIntent();
-        mRepTimeMillis = intent.getIntExtra(MainActivity.REP_KEY, 0);
-        mRestTimeMillis = intent.getIntExtra(MainActivity.REST_KEY, 0);
-        mBreakTimeMillis = intent.getIntExtra(MainActivity.BREAK_KEY, 0);
+        mRepTimeMillis = intent.getIntExtra(MainActivity.ACTION_REP_KEY, 0);
+        mRestTimeMillis = intent.getIntExtra(MainActivity.ACTION_REST_KEY, 0);
+        mBreakTimeMillis = intent.getIntExtra(MainActivity.ACTION_BREAK_KEY, 0);
 
-        mNumRounds = intent.getIntExtra(MainActivity.ROUND_NUM_KEY, 0);
-        mNumReps = intent.getIntExtra(MainActivity.REP_NUM_KEY, 0);
-        mCurRep = 1;
-        mCurRound = 1;
+        mNumRounds = intent.getIntExtra(MainActivity.ACTION_ROUND_NUM_KEY, 0);
+        mNumReps = intent.getIntExtra(MainActivity.ACTION_REP_NUM_KEY, 0);
 
-        mTTSIsReady = intent.getBooleanExtra(MainActivity.TTS_READY_KEY, false);
+        mCurRep = intent.getIntExtra(ACTION_CURRENT_REP_KEY, 1);
+        mCurRound = intent.getIntExtra(ACTION_CURRENT_ROUND_KEY, 1);
+        mTTSIsReady = intent.getBooleanExtra(MainActivity.ACTION_TTS_READY_KEY, false);
+        mIsServiceRunning = intent.getBooleanExtra(ACTION_SERVICE_RUNNING_KEY, false);
+
+        /* TODO: Clicking on the notification is now correctly bringing us back to the TimerActivity. However, its a lil glitchy when it comes to redisplaying the current time.
+            Its still kinda laggy It will display 1:05 until it catches the next broadcast from CountdownService. This can be corrected by adding currentTime to the bundle
+             but we will just need to make sure that it isn't too labor intensive to be constantly adding the current time to the bundle.
+            Same thing seemed to happen to the round number but need to double check
+        */
+
         //endregion
         //region TOOLBAR_SETUP
         //Toolbar setup
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        if(getSupportActionBar() != null){
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            // Show the Up button in the action bar.
+            actionBar.setDisplayHomeAsUpEnabled(true);
         }
         //endregion
 
@@ -147,10 +164,9 @@ public class TimerActivity extends AppCompatActivity {
         TextView timeView = findViewById(R.id.time_view);
         int[] timeArr = MainActivity.convertFromMillis(mRepTimeMillis);
         int minutes = timeArr[0], seconds = timeArr[1];
-        Boolean testing = true;
-        if((seconds % 10) == 0 && !testing){
+        if((seconds % 10) == 0){
             timeView.setText(String.format(Locale.US, "%d:%d%d", minutes, seconds, 0));
-        }else if (seconds < 10 && !testing){
+        }else if (seconds < 10 ){
             timeView.setText(String.format(Locale.US, "%d:%d%d", minutes, 0, seconds));
         } else {
             timeView.setText(String.format(Locale.US, "%d:%d", minutes, seconds));
@@ -159,13 +175,19 @@ public class TimerActivity extends AppCompatActivity {
 
         //region BROADCAST_INIT
         //Register the broadcast receiver with the filter
+        //TODO: If the service is already running, do not restart the timer
         IntentFilter filter = new IntentFilter();
         filter.addAction(TIMER_BROADCAST_FILTER);
         registerReceiver(mReciever, filter);
-        if(mTTSIsReady)
+        if (mTTSIsReady && !mIsServiceRunning) {
             startTimer();
-        else
-            Log.e(DEBUG_TAG, "TTS IS NOT READY");
+            mIsServiceRunning = true;
+        } else {
+            if(!mTTSIsReady)
+                Log.e(DEBUG_TAG, "TTS IS NOT READY");
+            else if(mIsServiceRunning)
+                Log.d(DEBUG_TAG, "Service is already running");
+        }
         //endregion
     }
 
@@ -190,8 +212,6 @@ public class TimerActivity extends AppCompatActivity {
 
     @Override
     public void onPause() {
-        //unregisterReceiver(mReciever);
-        //Log.i(DEBUG_TAG, "Unregistered broadcast receiver");
         super.onPause();
     }
 
@@ -208,19 +228,11 @@ public class TimerActivity extends AppCompatActivity {
     //TODO: onStop is called when the app is minimzed.
     @Override
     public void onStop() {
-        try {
-            //unregisterReceiver(mReciever);
-            //stopService(new Intent(this, CountdownBroadcastService.class));
-            //Log.i(DEBUG_TAG, "CountdownBroadcastService Stopped");
-        } catch (Exception e) {
-            // Receiver was probably already stopped in onPause()
-        }
         super.onStop();
     }
 
     @Override
     public void onRestart(){
-
         super.onRestart();
     }
     @Override
@@ -228,6 +240,11 @@ public class TimerActivity extends AppCompatActivity {
         stopService(new Intent(this, CountdownService.class));
         Log.i(DEBUG_TAG, "CountdownBroadcastService Stopped");
         unregisterReceiver(mReciever);
+
+        Intent intent = new Intent(TextToSpeechService.TTS_BROADCAST_STOP);
+        intent.putExtra("stop", 1);
+        sendBroadcast(intent);
+
         super.onDestroy();
     }
     //endregion
@@ -237,11 +254,11 @@ public class TimerActivity extends AppCompatActivity {
     public void startTimer(){
         Intent timerIntent = new Intent(this, CountdownService.class);
 
-        timerIntent.putExtra(MainActivity.REP_KEY, mRepTimeMillis);
-        timerIntent.putExtra(MainActivity.REST_KEY, mRestTimeMillis);
-        timerIntent.putExtra(MainActivity.BREAK_KEY, mBreakTimeMillis);
-        timerIntent.putExtra(MainActivity.REP_NUM_KEY, mNumReps);
-        timerIntent.putExtra(MainActivity.ROUND_NUM_KEY, mNumRounds);
+        timerIntent.putExtra(MainActivity.ACTION_REP_KEY, mRepTimeMillis);
+        timerIntent.putExtra(MainActivity.ACTION_REST_KEY, mRestTimeMillis);
+        timerIntent.putExtra(MainActivity.ACTION_BREAK_KEY, mBreakTimeMillis);
+        timerIntent.putExtra(MainActivity.ACTION_REP_NUM_KEY, mNumReps);
+        timerIntent.putExtra(MainActivity.ACTION_ROUND_NUM_KEY, mNumRounds);
 
         startService(timerIntent);
     }

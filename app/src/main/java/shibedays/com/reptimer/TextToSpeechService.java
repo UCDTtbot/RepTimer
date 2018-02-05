@@ -16,15 +16,17 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
 
     //region PRIVATE_TAGS_AND_KEYS
     private final static String SPEECH_ID = "com.shibadays.mTTS.speech";
-    private static final String DEBUG_TAG = "TTSService";
+    private static final String DEBUG_TAG = TextToSpeechService.class.getSimpleName();
     //endregion
 
     //region PUBLIC_TAGS_AND_KEYS
     //Broadcast Action
-    public final static String TTS_SPEECH_BROADCAST = "com.shibadays.mTTS.sentence";
+    public final static String TTS_SPEECH = "com.shibadays.mTTS.sentence";
     //Broadcast filter
     public final static String TTS_BROADCAST_FILTER = "com.shibadays.mTTS.broadcast_filter";
+    public final static String TTS_BROADCAST_STOP = "com.shibadays.mTTS.broadcast_stop";
     //endregion
+
     //region PRIVATE_VARS
     //TTS object
     private TextToSpeech mTTS;
@@ -39,7 +41,7 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            String speechString = intent.getStringExtra(TTS_SPEECH_BROADCAST);
+            String speechString = intent.getStringExtra(TTS_SPEECH);
             Log.i(DEBUG_TAG, "TTS Received action: " + action);
             if(intent.getExtras() != null) {
                 if(action.equals(TTS_BROADCAST_FILTER)) {
@@ -47,6 +49,8 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
                         mTTS.speak(speechString, TextToSpeech.QUEUE_FLUSH, null, SPEECH_ID);
                         Log.i(DEBUG_TAG, "Speaking: " + speechString);
                     }
+                } else if(action.equals(TTS_BROADCAST_STOP)) {
+                    mTTS.stop();
                 }
                 //else if (action == TimerScreen.TTS_READY_FILTER) {
                 //idk what this was...
@@ -72,6 +76,7 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
 
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(TTS_BROADCAST_FILTER);
+        intentFilter.addAction(TTS_BROADCAST_STOP);
         registerReceiver(mReceiver, intentFilter);
 
         super.onCreate();
@@ -111,7 +116,7 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
 
             mIsTTSReady = true;
             Intent broadcastIntent = new Intent(MainActivity.TTS_BROADCAST_FILTER);
-            broadcastIntent.putExtra(MainActivity.TTS_READY_KEY, mIsTTSReady);
+            broadcastIntent.putExtra(MainActivity.ACTION_TTS_READY_KEY, mIsTTSReady);
             Log.i(DEBUG_TAG, "TTS Good");
             sendBroadcast(broadcastIntent);
 
@@ -125,7 +130,7 @@ public class TextToSpeechService extends Service implements TextToSpeech.OnInitL
         //destroy the mTTS
         unregisterReceiver(mReceiver);
         Log.i(DEBUG_TAG, "TTS Destroyed");
-        mTTS.stop();
+        mTTS.shutdown();
     }
     //endregion
 }

@@ -21,11 +21,9 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
 
     //region PRIVATE_VARS
     //Log tag
-    private static String DEBUG_TAG = "SetTimeDialogue.tag";
+    private static String DEBUG_TAG = SetTimeDialogue.class.getSimpleName();
     //The time array being set
     private int mTime[];
-    //Preference editor for saving values
-    private SharedPreferences.Editor mPrefEditor;
     //The type of time we are working with
     private String mTimeType;
     private String mPrefType;
@@ -89,7 +87,8 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
         secondsPicker.setFormatter(new NumberPicker.Formatter() {
             @Override
             public String format(int i) {
-                return String.format(Locale.US,"%02d", i);            }
+                return String.format(Locale.US,"%02d", i);
+            }
         });
         secondsPicker.setWrapSelectorWheel(true);
         secondsPicker.setOnValueChangedListener(this);
@@ -98,9 +97,9 @@ public class SetTimeDialogue extends DialogFragment implements NumberPicker.OnVa
                 .setTitle("Choose a time")
                 .setPositiveButton("Set", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        mPrefEditor = getActivity().getSharedPreferences(MainActivity.PREF_IDENTIFIER, Context.MODE_PRIVATE).edit();
-                        mPrefEditor.putInt(mPrefType, MainActivity.convertToMillis(mTime));
-                        mPrefEditor.apply();
+                        SharedPreferences.Editor prefEditor = getActivity().getSharedPreferences(MainActivity.PREF_IDENTIFIER, Context.MODE_PRIVATE).edit();
+                        prefEditor.putInt(mPrefType, MainActivity.convertToMillis(mTime));
+                        prefEditor.apply();
                         TextView view = null;
                         if(MainActivity.TIME_TYPE.get(mTimeType) == 0){ //Rep
                             view = mParentActivity.findViewById(R.id.rep_time);

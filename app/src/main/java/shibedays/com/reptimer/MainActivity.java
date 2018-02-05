@@ -1,6 +1,5 @@
 package shibedays.com.reptimer;
 
-import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,22 +18,24 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.HashMap;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, SetTimeDialogue.NoticeDialogListener{
 
-    private static final String DEBUG_TAG = "com.shibedays.MainAct";
+    private static final String DEBUG_TAG = MainActivity.class.getSimpleName();
+
     //region PUBLIC_TAGS_AND_KEYS
 
     //keys for intent passing
-    public static final String REP_KEY = "com.shibedays.MainAct.REP";
-    public static final String REST_KEY = "com.shibedays.MainAct.REST";
-    public static final String BREAK_KEY = "com.shibedays.MainAct.BREAK";
-    public static final String REP_NUM_KEY = "com.shibedays.MainAct.REP_NUM";
-    public static final String ROUND_NUM_KEY = "com.shibedays.MainAct.BREAK_NUM";
-    public static final String TTS_READY_KEY = "com.shibedays.MainAct.TTS_READY";
+    public static final String ACTION_REP_KEY = "com.shibedays.MainAct.REP";
+    public static final String ACTION_REST_KEY = "com.shibedays.MainAct.REST";
+    public static final String ACTION_BREAK_KEY = "com.shibedays.MainAct.BREAK";
+    public static final String ACTION_REP_NUM_KEY = "com.shibedays.MainAct.REP_NUM";
+    public static final String ACTION_ROUND_NUM_KEY = "com.shibedays.MainAct.BREAK_NUM";
+    public static final String ACTION_TTS_READY_KEY = "com.shibedays.MainAct.TTS_READY";
 
     //pref ID keys
     public static final String PREF_IDENTIFIER = "com.shibedays.MainAct.PREFS";
@@ -74,7 +75,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     //preference variables
     private SharedPreferences mSharedPref;
-    private SharedPreferences.Editor mPrefEditor;
     private FragmentManager mFragmentManager;
     //endregion
 
@@ -83,9 +83,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     //hashmap for the type of time, binds text type to numbers 0-2
     public static final HashMap<String, Integer> TIME_TYPE = new HashMap<String, Integer>();
     static{
-        TIME_TYPE.put(REP_KEY, 0);
-        TIME_TYPE.put(REST_KEY, 1);
-        TIME_TYPE.put(BREAK_KEY, 2);
+        TIME_TYPE.put(ACTION_REP_KEY, 0);
+        TIME_TYPE.put(ACTION_REST_KEY, 1);
+        TIME_TYPE.put(ACTION_BREAK_KEY, 2);
     }
 
     //endregion
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             String action = intent.getAction();
             if(action != null){
                 if(action.equals(TTS_BROADCAST_FILTER)){
-                    mIsTTSReady = intent.getBooleanExtra(TTS_READY_KEY, false);
+                    mIsTTSReady = intent.getBooleanExtra(ACTION_TTS_READY_KEY, false);
                 } else {
                     Log.e(DEBUG_TAG, "Broadcast in MainScreen in invalid");
                 }
@@ -111,6 +111,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         //Get fragment manager
         mFragmentManager = getSupportFragmentManager();
 
@@ -179,16 +180,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Spinner roundSpinner = (Spinner)findViewById(R.id.round_spinner);
         repSpinner.setOnItemSelectedListener(this);
         roundSpinner.setOnItemSelectedListener(this);
+
         //Spinner adapter setup
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.dropdown_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         repSpinner.setAdapter(adapter);
         roundSpinner.setAdapter(adapter);
+
         //Set spinners to default values
         int repPos = adapter.getPosition("\u0020" + Integer.toString(mNumReps) + "\u0020");
         int roundPos = adapter.getPosition("\u0020" + Integer.toString(mNumRounds) + "\u0020");
         repSpinner.setSelection(repPos);
         roundSpinner.setSelection(roundPos);
+
         //endregion
     }
 
@@ -208,6 +212,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -255,17 +261,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         SetTimeDialogue newTime = new SetTimeDialogue();
         Bundle args = new Bundle();
         if(view.getId() == R.id.set_rep_button){
-            args.putString(TIME_TYPE_KEY, REP_KEY);
+            args.putString(TIME_TYPE_KEY, ACTION_REP_KEY);
             args.putString(PREF_TYPE_KEY, PREF_REP_KEY);
-            args.putIntArray(REP_KEY, mRepTime);
+            args.putIntArray(ACTION_REP_KEY, mRepTime);
         } else if(view.getId() == R.id.set_rest_button){
-            args.putString(TIME_TYPE_KEY, REST_KEY);
+            args.putString(TIME_TYPE_KEY, ACTION_REST_KEY);
             args.putString(PREF_TYPE_KEY, PREF_REST_KEY);
-            args.putIntArray(REST_KEY, mRestTime);
+            args.putIntArray(ACTION_REST_KEY, mRestTime);
         } else if(view.getId() == R.id.set_break_button){
-            args.putString(TIME_TYPE_KEY, BREAK_KEY);
+            args.putString(TIME_TYPE_KEY, ACTION_BREAK_KEY);
             args.putString(PREF_TYPE_KEY, PREF_BREAK_KEY);
-            args.putIntArray(BREAK_KEY, mBreakTime);
+            args.putIntArray(ACTION_BREAK_KEY, mBreakTime);
         }
         newTime.setArguments(args);
         newTime.show(mFragmentManager, DEBUG_TAG);
@@ -279,18 +285,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if(mIsTTSReady){
             Intent intent = new Intent(this, TimerActivity.class);
 
-            intent.putExtra(REP_KEY, mRepTimeInMillis);
-            intent.putExtra(REST_KEY, mRestTimeInMillis);
-            intent.putExtra(BREAK_KEY, mBreakTimeInMillis);
+            intent.putExtra(ACTION_REP_KEY, mRepTimeInMillis);
+            intent.putExtra(ACTION_REST_KEY, mRestTimeInMillis);
+            intent.putExtra(ACTION_BREAK_KEY, mBreakTimeInMillis);
 
-            intent.putExtra(REP_NUM_KEY, mNumReps);
-            intent.putExtra(ROUND_NUM_KEY, mNumRounds);
+            intent.putExtra(ACTION_REP_NUM_KEY, mNumReps);
+            intent.putExtra(ACTION_ROUND_NUM_KEY, mNumRounds);
 
-            intent.putExtra(TTS_READY_KEY, mIsTTSReady);
+            intent.putExtra(ACTION_TTS_READY_KEY, mIsTTSReady);
 
             startActivity(intent);
         } else {
             Log.e(DEBUG_TAG, "Attempted to start timer before TTS was ready");
+            Toast.makeText(this, "Text to speech is not ready.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -323,16 +330,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
      * @param id long, ID of the UI view
      */
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id){
-        mPrefEditor = mSharedPref.edit();
+        SharedPreferences.Editor prefEditor = mSharedPref.edit();
         if(parent.getId() == R.id.rep_spinner){
             mNumReps = Integer.parseInt(parent.getItemAtPosition(pos).toString().trim());
-            mPrefEditor.putInt(PREF_NUM_REPS, mNumReps);
+            prefEditor.putInt(PREF_NUM_REPS, mNumReps);
         } else if (parent.getId() == R.id.round_spinner){
             mNumRounds = Integer.parseInt(parent.getItemAtPosition(pos).toString().trim());
-            mPrefEditor.putInt(PREF_NUM_ROUNDS, mNumRounds);
+            prefEditor.putInt(PREF_NUM_ROUNDS, mNumRounds);
         }
 
-        mPrefEditor.apply();
+        prefEditor.apply();
     }
 
     /**
