@@ -44,7 +44,7 @@ public class CountdownService extends Service {
     private String mCurrentAction;
 
     private Handler mHandler = new Handler();
-
+    private Intent mNotifIntent;
     //Notification Manager and Builder
     private NotificationCompat.Builder mBuilder;
     private NotificationManager mNotifManager;
@@ -69,26 +69,25 @@ public class CountdownService extends Service {
         //Init cur rep and round to the first rep/round
         mCurRep = 1;
         mCurRound = 1;
+        mNotifIntent = new Intent(this, TimerActivity.class);
         //endregion
 
         //region NOTIFICATION_SETUP
-        //TODO: Finish setting up the notification
         mNotifManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         //TODO: stick this intent with shit like we do in main activity
-        Intent notifIntent = new Intent(this, TimerActivity.class);
 
-        notifIntent.putExtra(MainActivity.ACTION_REP_KEY, mRepTime);
-        notifIntent.putExtra(MainActivity.ACTION_REST_KEY, mRestTime);
-        notifIntent.putExtra(MainActivity.ACTION_BREAK_KEY, mBreakTime);
+        mNotifIntent.putExtra(MainActivity.ACTION_REP_KEY, mRepTime);
+        mNotifIntent.putExtra(MainActivity.ACTION_REST_KEY, mRestTime);
+        mNotifIntent.putExtra(MainActivity.ACTION_BREAK_KEY, mBreakTime);
 
-        notifIntent.putExtra(MainActivity.ACTION_REP_NUM_KEY, mNumReps);
-        notifIntent.putExtra(MainActivity.ACTION_ROUND_NUM_KEY, mNumRounds);
+        mNotifIntent.putExtra(MainActivity.ACTION_REP_NUM_KEY, mNumReps);
+        mNotifIntent.putExtra(MainActivity.ACTION_ROUND_NUM_KEY, mNumRounds);
 
-        notifIntent.putExtra(MainActivity.ACTION_TTS_READY_KEY, 1);
-        notifIntent.putExtra(TimerActivity.ACTION_SERVICE_RUNNING_KEY, 1);
-        notifIntent.putExtra(TimerActivity.ACTION_CURRENT_REP_KEY, mCurRep);
-        notifIntent.putExtra(TimerActivity.ACTION_CURRENT_ROUND_KEY, mCurRound);
+        mNotifIntent.putExtra(MainActivity.ACTION_TTS_READY_KEY, 1);
+        mNotifIntent.putExtra(TimerActivity.ACTION_SERVICE_RUNNING_KEY, 1);
+        mNotifIntent.putExtra(TimerActivity.ACTION_CURRENT_REP_KEY, mCurRep);
+        mNotifIntent.putExtra(TimerActivity.ACTION_CURRENT_ROUND_KEY, mCurRound);
 
         /*  Dunno if I actually need this stackbuilder stuff
         //https://developer.android.com/guide/topics/ui/notifiers/notifications.html
@@ -101,7 +100,7 @@ public class CountdownService extends Service {
         */
         //TODO: one possibility for fixing this is to send off a bundle of the relevent data in this pendingIntent
         //TODO: or to use the notification as a broadcast instead? but then how do we get the service back
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, mNotifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         /*
             intent.putExtra(ACTION_REP_KEY, mRepTimeInMillis);
@@ -116,7 +115,7 @@ public class CountdownService extends Service {
 
         mBuilder = new NotificationCompat.Builder(this, "MainTimerChannel_1");
         mBuilder.setContentTitle("Timer")
-                .setContentText("X Minutes Left")
+                .setContentText("Rep: " + mCurRep + " Round: " + mCurRound )
                 .setContentIntent(pendingIntent)
                 .setSmallIcon(R.drawable.ic_timer_white)
                 .setOngoing(true)
@@ -151,14 +150,53 @@ public class CountdownService extends Service {
         mHandler.removeCallbacks(timerUpdate);
         mHandler.postDelayed(timerUpdate, (ONE_SECOND * 5));
     }
+
+    private void updateNotification(){
+        mNotifManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        mNotifIntent.putExtra(MainActivity.ACTION_REP_KEY, mRepTime);
+        mNotifIntent.putExtra(MainActivity.ACTION_REST_KEY, mRestTime);
+        mNotifIntent.putExtra(MainActivity.ACTION_BREAK_KEY, mBreakTime);
+
+        mNotifIntent.putExtra(MainActivity.ACTION_REP_NUM_KEY, mNumReps);
+        mNotifIntent.putExtra(MainActivity.ACTION_ROUND_NUM_KEY, mNumRounds);
+
+        mNotifIntent.putExtra(MainActivity.ACTION_TTS_READY_KEY, 1);
+        mNotifIntent.putExtra(TimerActivity.ACTION_SERVICE_RUNNING_KEY, 1);
+        mNotifIntent.putExtra(TimerActivity.ACTION_CURRENT_REP_KEY, mCurRep);
+        mNotifIntent.putExtra(TimerActivity.ACTION_CURRENT_ROUND_KEY, mCurRound);
+
+        //Dunno if I actually need this stackbuilder stuff
+        //https://developer.android.com/guide/topics/ui/notifiers/notifications.html
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, mNotifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mBuilder = new NotificationCompat.Builder(this, "MainTimerChannel_1");
+        mBuilder.setContentTitle("Timer")
+                .setContentText("Rep: " + mCurRep + " Round: " + mCurRound )
+                .setContentIntent(pendingIntent)
+                .setSmallIcon(R.drawable.ic_timer_white)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+        mNotifManager.notify(NOTIF_ID, mBuilder.build());
+    }
+
+    private void continueTimer(int time, int delay){
+        mMillisLeft = time;
+        mHandler.removeCallbacks(timerUpdate);
+        mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, time);
+        sendBroadcast(mTimerBroadcastIntent);
+        mHandler.postDelayed(timerUpdate, ONE_SECOND * delay);
+    }
+
+
     //endregion
 
     //TODO: Rest time is not correctly updating until about 7 seconds left in the countdown
     private Runnable timerUpdate = new Runnable(){
         public void run(){
             mMillisLeft -= ONE_SECOND;
-            mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mMillisLeft);
-            sendBroadcast(mTimerBroadcastIntent);
+
             if(mMillisLeft > 0) {
                 if(mMillisLeft == 7000 && mCurrentAction.equals(REST_ACTION)){
                     mTTSBroadcastIntent.putExtra(TextToSpeechService.TTS_SPEECH, "Rest ending in");
@@ -194,40 +232,37 @@ public class CountdownService extends Service {
                     sendBroadcast(mTTSBroadcastIntent);
 
                     mCurrentAction = BREAK_ACTION;
-                    mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mBreakTime);
+                    continueTimer(mBreakTime, 2);
 
-                    sendBroadcast(mTimerBroadcastIntent);
-                    beginTimer(mBreakTime);
                 } else if(mCurrentAction.equals(REPETITION_ACTION) && mCurRep == mNumReps && mCurRound == mNumRounds){
+                    //TODO: "Finished" gets cut off because of TimerActivity exiting
                     mTTSBroadcastIntent.putExtra(TextToSpeechService.TTS_SPEECH, "Finished.");
                     sendBroadcast(mTTSBroadcastIntent);
                     stopForeground(true);
                     //TODO: Send us back to MainScreen
+                    Intent finished = new Intent(TimerActivity.TIMER_BROADCAST_FINISHED);
+                    finished.putExtra(TimerActivity.ACTION_TIMER_FINISHED, true);
+                    sendBroadcast(finished);
                     stopSelf();
                 } else if(mCurrentAction.equals(REPETITION_ACTION) && mCurRep != mNumReps){
                     //Repetition finished. Rest.
+
                     mTTSBroadcastIntent.putExtra(TextToSpeechService.TTS_SPEECH, "Take a rest.");
                     sendBroadcast(mTTSBroadcastIntent);
 
-                    mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mRestTime);
-                    sendBroadcast(mTimerBroadcastIntent);
-
                     mCurrentAction = REST_ACTION;
-                    beginTimer(mRestTime);
+                    continueTimer(mRestTime, 2);
                 } else if(mCurrentAction.equals(REST_ACTION)){
                     //Rest finished. Start next rep.
                     mCurRep++;
                     mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_REP_UI, mCurRep);
                     sendBroadcast(mTimerBroadcastIntent);
                     mTTSBroadcastIntent.putExtra(TextToSpeechService.TTS_SPEECH, "Begin.");
+                    updateNotification();
                     sendBroadcast(mTTSBroadcastIntent);
 
-                    mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mRepTime);
-                    sendBroadcast(mTimerBroadcastIntent);
-
-                    //TODO: Timer is skipping over rest time
                     mCurrentAction = REPETITION_ACTION;
-                    beginTimer(mRepTime);
+                    continueTimer(mRepTime, 1);
                 } else if(mCurrentAction.equals(BREAK_ACTION)){
                     //Break finished, start next round
                     mCurRound++;
@@ -237,20 +272,21 @@ public class CountdownService extends Service {
                     sendBroadcast(mTTSBroadcastIntent);
 
                     mCurRep = 1;
+                    updateNotification();
                     mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_REP_UI, mCurRep);
                     sendBroadcast(mTimerBroadcastIntent);
 
-                    mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mRepTime);
-                    sendBroadcast(mTimerBroadcastIntent);
-
                     mCurrentAction = REPETITION_ACTION;
-                    beginTimer(mRepTime);
+                    continueTimer(mRepTime, 2);
                 } else {
 
                 }
             } else {
                 Log.e(DEBUG_TAG, "Something went wrong");
             }
+
+            mTimerBroadcastIntent.putExtra(TimerActivity.UPDATE_TIMER_UI, mMillisLeft);
+            sendBroadcast(mTimerBroadcastIntent);
         }
     };
 

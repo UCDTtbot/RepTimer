@@ -33,9 +33,11 @@ public class TimerActivity extends AppCompatActivity {
     public final static String ACTION_SERVICE_RUNNING_KEY = "com.shibedays.TimerScreen.SERVICE_RUNNING";
     public final static String ACTION_CURRENT_REP_KEY = "com.shibedays.TimerScreen.CURRENT_REP";
     public final static String ACTION_CURRENT_ROUND_KEY = "com.shibedays.TimerScreen.CURRENT_ROUND";
+    public final static String ACTION_TIMER_FINISHED = "com.shibedays.TimerScreen.TIMER_FINISHED";
 
     //Broadcast filter for the timer receiver
     public final static String TIMER_BROADCAST_FILTER = "com.shibadays.TimerScreen.TimerFilter";
+    public final static String TIMER_BROADCAST_FINISHED = "come.shibedays.TimerScreen.finished";
     //endregion
 
     //region PRIVATE_VARS
@@ -83,19 +85,22 @@ public class TimerActivity extends AppCompatActivity {
                     mTimeLeft = (int) intent.getLongExtra(UPDATE_TIMER_UI, 0);
                     int newReps = intent.getIntExtra(UPDATE_REP_UI, 0 );
                     int newRounds = intent.getIntExtra(UPDATE_ROUND_UI, 0);
-                    //Log.i(DEBUG_TAG, Integer.toString(mTimeLeft));
+
                     if (mTimeLeft >= 0) {
                         TextView view = findViewById(R.id.time_view);
                         int[] timeArr = MainActivity.convertFromMillis(mTimeLeft);
                         int minutes = timeArr[0], seconds = timeArr[1];
-                        if((seconds % 10) == 0){
+                        if(seconds == 0){
                             view.setText(String.format(Locale.US, "%d:%d%d", minutes, seconds, 0));
+                        }else if((seconds % 10) == 0){
+                            view.setText(String.format(Locale.US, "%d:%d", minutes, seconds));
                         }else if (seconds < 10){
                             view.setText(String.format(Locale.US, "%d:%d%d", minutes, 0, seconds));
                         } else {
                             view.setText(String.format(Locale.US, "%d:%d", minutes, seconds));
                         }
                     }
+
                     if(newReps != mCurRep && newReps != 0){
                         TextView view = findViewById(R.id.rep_view);
                         view.setText(String.format(Locale.US, "%d of %d", newReps, mNumReps));
@@ -105,6 +110,10 @@ public class TimerActivity extends AppCompatActivity {
                         TextView view = findViewById(R.id.round_view);
                         view.setText(String.format(Locale.US, "%d of %d", newRounds, mNumRounds));
                         mCurRound = newRounds;
+                    }
+                }else if(action.equals(TIMER_BROADCAST_FINISHED)){
+                    if(intent.getBooleanExtra(ACTION_TIMER_FINISHED, false)){
+                        finish();
                     }
                 }
             }
@@ -178,6 +187,7 @@ public class TimerActivity extends AppCompatActivity {
         //TODO: If the service is already running, do not restart the timer
         IntentFilter filter = new IntentFilter();
         filter.addAction(TIMER_BROADCAST_FILTER);
+        filter.addAction(TIMER_BROADCAST_FINISHED);
         registerReceiver(mReciever, filter);
         if (mTTSIsReady && !mIsServiceRunning) {
             startTimer();
